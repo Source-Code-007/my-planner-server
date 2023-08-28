@@ -38,8 +38,7 @@ async function run() {
     })
 
     app.get('/tasks', async(req, res)=> {
-        const tasks = await tasksCollection.find({})
-        console.log(tasks);
+        const tasks = await tasksCollection.find({}).toArray()
         res.send(tasks)
     })
 
