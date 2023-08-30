@@ -2,6 +2,8 @@ require("dotenv").config();
 const express = require('express')
 const app = express()
 const cors = require('cors')
+const jwt = require('jsonwebtoken');
+const verifyJWT = require('./Middleware/verifyJWT')
 const port = process.env.PORT || 3000
 
 app.use(express.json())
@@ -33,13 +35,31 @@ async function run() {
 
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
-    app.get(('/'), (req,res)=>{
-        res.send('Homepage of My planner server');
+    app.get(('/'), (req, res) => {
+      res.send('Homepage of My planner server');
     })
 
-    app.get('/tasks', async(req, res)=> {
-        const tasks = await tasksCollection.find({}).toArray()
-        res.send(tasks)
+    // create jwt
+    app.post(('/create-jwt'), (req, res) => {
+      const { email } = req.query
+      const result = jwt.sign({
+        email: email
+      }, process.env.JWT_SECRET);
+      res.send({ result })
+    })
+
+    // add tasks
+    app.post(('/insert-tasks'), verifyJWT, async (req, res) => {
+      const task =  req?.body
+      const result = await tasksCollection.insertOne(task)
+      res.send(result)
+    })
+
+    // get my tasks
+    app.get('/get-tasks', async (req, res) => {
+      const email = req.query?.email
+      const tasks = await tasksCollection.find({user: email}).toArray()
+      res.send(tasks)
     })
 
 
@@ -51,11 +71,6 @@ async function run() {
 run().catch(console.dir);
 
 
-
-
-
-
-
-app.listen(port, (req,res)=>{
-    console.log('My planner server running!');
+app.listen(port, (req, res) => {
+  console.log('My planner server running!');
 })
